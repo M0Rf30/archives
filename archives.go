@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -142,6 +141,31 @@ func FilesFromDisk(ctx context.Context, options *FromDiskOptions, filenames map[
 	return files, nil
 }
 
+// customJoin joins any number of path elements into a single path,
+// separating them with slashes. Empty elements are ignored.
+// The result is not cleaned. However, if the argument list is
+// empty or all its elements are empty, Join returns
+// an empty string.
+func customJoin(elem ...string) string {
+	size := 0
+	for _, e := range elem {
+		size += len(e)
+	}
+	if size == 0 {
+		return ""
+	}
+	buf := make([]byte, 0, size+len(elem)-1)
+	for _, e := range elem {
+		if len(buf) > 0 || e != "" {
+			if len(buf) > 0 {
+				buf = append(buf, '/')
+			}
+			buf = append(buf, e...)
+		}
+	}
+	return string(buf)
+}
+
 // nameOnDiskToNameInArchive converts a filename from disk to a name in an archive,
 // respecting rules defined by FilesFromDisk. nameOnDisk is the full filename on disk
 // which is expected to be prefixed by rootOnDisk (according to fs.WalkDirFunc godoc)
@@ -161,7 +185,7 @@ func nameOnDiskToNameInArchive(nameOnDisk, rootOnDisk, rootInArchive string) str
 		rootInArchive += filepath.Base(rootOnDisk)
 	}
 	truncPath := strings.TrimPrefix(nameOnDisk, rootOnDisk)
-	return path.Join(rootInArchive, filepath.ToSlash(truncPath))
+	return customJoin(rootInArchive, filepath.ToSlash(truncPath))
 }
 
 // trimTopDir strips the top or first directory from the path.
