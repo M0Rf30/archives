@@ -16,8 +16,12 @@ func init() {
 }
 
 type Tar struct {
-	// If true, use GNU header format
-	FormatGNU bool
+	// The format of the tar archive.
+	// Possible values:
+	//   - tar.FormatUSTAR: The format is USTAR (POSIX.1-1988).
+	//   - tar.FormatGNU: The format is GNU (GNU tar extensions).
+	//   - tar.FormatPAX: The format is PAX (POSIX.1-2001).
+	Format tar.Format
 
 	// If true, preserve only numeric user and group id
 	NumericUIDGID bool
@@ -98,14 +102,12 @@ func (t Tar) writeFileToArchive(ctx context.Context, tw *tar.Writer, file FileIn
 	if err != nil {
 		return fmt.Errorf("file %s: creating header: %w", file.NameInArchive, err)
 	}
-
 	hdr.Name = file.NameInArchive // complete path, since FileInfoHeader() only has base name
-
 	if hdr.Name == "" {
 		hdr.Name = file.Name() // assume base name of file I guess
 	}
-	if t.FormatGNU {
-		hdr.Format = tar.FormatGNU
+	if t.Format != 0 {
+		hdr.Format = t.Format
 	}
 	if t.NumericUIDGID {
 		hdr.Uname = ""
